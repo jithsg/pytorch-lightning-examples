@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torchvision import datasets, transforms
+import torchmetrics
 
 
 class PyTorchMLP(torch.nn.Module):
@@ -66,8 +67,8 @@ def compute_accuracy(model, dataloader, device=None):
         device = torch.device("cpu")
     model = model.eval()
 
-    correct = 0.0
-    total_examples = 0
+    train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
+    val_acc =  torchmetrics.Accuracy(task="multiclass", num_classes=10)
 
     for idx, (features, labels) in enumerate(dataloader):
 
@@ -78,8 +79,9 @@ def compute_accuracy(model, dataloader, device=None):
 
         predictions = torch.argmax(logits, dim=1)
 
-        compare = labels == predictions
-        correct += torch.sum(compare)
-        total_examples += len(compare)
+        if dataloader == "train":
+            train_acc(predictions, labels)
+        else:
+            val_acc(predictions, labels)
 
     return correct / total_examples

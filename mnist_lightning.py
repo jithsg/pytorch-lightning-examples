@@ -3,6 +3,7 @@
 
 import lightning as L
 import torch
+import torchmetrics
 import torch.nn.functional as F
 from shared_utilities import PyTorchMLP, compute_accuracy, get_dataset_loaders
 
@@ -13,6 +14,8 @@ class LightningModel(L.LightningModule):
 
         self.learning_rate = learning_rate
         self.model = model
+        self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)   
+        self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
 
     def forward(self, x):
         return self.model(x)
@@ -21,14 +24,21 @@ class LightningModel(L.LightningModule):
         features, true_labels = batch
         logits = self(features)
         loss = F.cross_entropy(logits, true_labels)
-        self.log("train_loss", loss)
+        predicted_labels = torch.argmax(logits, dim=1)
+        self.train_acc(predicted_labels, true_labels)
+        
+        self.log("train_acc", self.train_acc, prog_bar=True, on_step=False, on_epoch=True)
         return loss  # this is passed to the optimizer for training
 
     def validation_step(self, batch, batch_idx):
         features, true_labels = batch
         logits = self(features)
         loss = F.cross_entropy(logits, true_labels)
-        self.log("val_loss", loss, prog_bar=True)
+        predicted_labels = torch.argmax(logits, dim=1)
+        self.val_acc(predicted_labels, true_labels)
+        self.log("val_acc", self.val_acc, prog_bar=True)
+        
+
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate)
@@ -55,14 +65,6 @@ if __name__ == "__main__":
         val_dataloaders=val_loader,
     )
 
-    train_acc = compute_accuracy(pytorch_model, train_loader)
-    val_acc = compute_accuracy(pytorch_model, val_loader)
-    test_acc = compute_accuracy(pytorch_model, test_loader)
-    print(
-        f"Train Acc {train_acc*100:.2f}%"
-        f" | Val Acc {val_acc*100:.2f}%"
-        f" | Test Acc {test_acc*100:.2f}%"
-    )
 
 
 PATH = "lightning.pt"
