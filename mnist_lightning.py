@@ -16,28 +16,35 @@ class LightningModel(L.LightningModule):
         self.model = model
         self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)   
         self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
+        self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
 
     def forward(self, x):
         return self.model(x)
-
-    def training_step(self, batch, batch_idx):
+    
+    
+    def _shared_step(self, batch):
         features, true_labels = batch
         logits = self(features)
         loss = F.cross_entropy(logits, true_labels)
         predicted_labels = torch.argmax(logits, dim=1)
+        return loss, predicted_labels, true_labels
+
+    def training_step(self, batch, batch_idx):
+        loss, predicted_labels, true_labels = self._shared_step(batch)
         self.train_acc(predicted_labels, true_labels)
         
         self.log("train_acc", self.train_acc, prog_bar=True, on_step=False, on_epoch=True)
         return loss  # this is passed to the optimizer for training
 
     def validation_step(self, batch, batch_idx):
-        features, true_labels = batch
-        logits = self(features)
-        loss = F.cross_entropy(logits, true_labels)
-        predicted_labels = torch.argmax(logits, dim=1)
+        loss, predicted_labels, true_labels = self._shared_step(batch)
         self.val_acc(predicted_labels, true_labels)
         self.log("val_acc", self.val_acc, prog_bar=True)
-        
+    
+    def test_step(self, batch, batch_idx):
+        loss, true_labels, predicted_labels = self._shared_step(batch)
+        self.test_acc(predicted_labels, true_labels)
+        self.log("test_accuracy", self.test_acc)
 
 
     def configure_optimizers(self):
@@ -54,7 +61,7 @@ if __name__ == "__main__":
     lightning_model = LightningModel(model=pytorch_model, learning_rate=0.05)
 
     trainer = L.Trainer(
-        max_epochs=10,
+        max_epochs=1,
         accelerator="auto",  # set to "auto" or "gpu" to use GPUs if available
         devices="auto",  # Uses all available GPUs if applicable
     )
@@ -64,9 +71,11 @@ if __name__ == "__main__":
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
-
-
-
+    
+    train_acc = trainer.test(dataloaders=train_loader)[0]["accuracy"]
+    val_acc = trainer.test(dataloaders=val_loader)[0]["accuracy"]
+    test_acc = trainer.test(dataloaders=test_loader)[0]["accuracy"]
+    
 PATH = "lightning.pt"
 torch.save(pytorch_model.state_dict(), PATH)
 
