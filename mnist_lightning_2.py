@@ -20,7 +20,7 @@ if __name__ == "__main__":
     lightning_model = LightningModel(model=pytorch_model, learning_rate=0.05)
 
     trainer = L.Trainer(
-        max_epochs=10, accelerator="cpu", devices="auto", deterministic=True
+        max_epochs=5, accelerator="cpu", devices="auto", deterministic=True, default_root_dir='.'
     )
 
     # NEW !!!
