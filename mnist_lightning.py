@@ -44,7 +44,7 @@ class LightningModel(L.LightningModule):
     def test_step(self, batch, batch_idx):
         loss, true_labels, predicted_labels = self._shared_step(batch)
         self.test_acc(predicted_labels, true_labels)
-        self.log("test_accuracy", self.test_acc)
+        self.log("accuracy", self.test_acc)
 
 
     def configure_optimizers(self):
@@ -56,14 +56,16 @@ if __name__ == "__main__":
     print("Torch CUDA available?", torch.cuda.is_available())
 
     train_loader, val_loader, test_loader = get_dataset_loaders()
+    torch.manual_seed(123)
 
     pytorch_model = PyTorchMLP(num_features=784, num_classes=10)
     lightning_model = LightningModel(model=pytorch_model, learning_rate=0.05)
 
     trainer = L.Trainer(
-        max_epochs=1,
-        accelerator="auto",  # set to "auto" or "gpu" to use GPUs if available
-        devices="auto",  # Uses all available GPUs if applicable
+        max_epochs=2,
+        accelerator="cpu",  # set to "auto" or "gpu" to use GPUs if available
+        devices="auto",
+        deterministic=True  # Uses all available GPUs if applicable
     )
 
     trainer.fit(
