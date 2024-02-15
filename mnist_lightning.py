@@ -17,6 +17,7 @@ class LightningModel(L.LightningModule):
         self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)   
         self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
         self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
+        
 
     def forward(self, x):
         return self.model(x)
@@ -63,7 +64,7 @@ if __name__ == "__main__":
 
     trainer = L.Trainer(
         max_epochs=2,
-        accelerator="cpu",  # set to "auto" or "gpu" to use GPUs if available
+        accelerator="gpu",  # set to "auto" or "gpu" to use GPUs if available
         devices="auto",
         deterministic=True  # Uses all available GPUs if applicable
     )

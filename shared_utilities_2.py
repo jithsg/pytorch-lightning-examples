@@ -34,6 +34,7 @@ class LightningModel(L.LightningModule):
 
         self.learning_rate = learning_rate
         self.model = model
+        self.save_hyperparameters(ignore=["model"])
         self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)   
         self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
         self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10)
